@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_get_mac_bytes_invalid_characters() {
-        let mac = "00:11:22:33:44:55:66";
+        let mac = "zz:11:22:33:44:55";
         let mac_bytes = get_mac_bytes(mac);
         assert!(mac_bytes.is_err());
     }
