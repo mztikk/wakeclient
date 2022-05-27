@@ -10,6 +10,8 @@ const MAGIC_PACKET: &[u8; 6] = &[0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
 enum WakeError {
     #[error("Mac address is not of length 12 '{0}'")]
     MacNotLength12(String),
+    #[error("Mac address '{0}' contains invalid non-hex characters '{1}' at position {2}")]
+    MacContainsInvalidChars(String, String, usize),
 }
 
 fn get_mac_bytes(mac: &str) -> Result<[u8; 6], WakeError> {
@@ -22,7 +24,9 @@ fn get_mac_bytes(mac: &str) -> Result<[u8; 6], WakeError> {
 
     let mut i = 0;
     while i < 12 {
-        mac_bytes[i / 2] = u8::from_str_radix(&mac[i..i + 2], 16).unwrap();
+        mac_bytes[i / 2] = u8::from_str_radix(&mac[i..i + 2], 16).map_err(|_| {
+            WakeError::MacContainsInvalidChars(mac.clone(), (&mac[i..i + 2]).to_string(), i)
+        })?;
         i += 2;
     }
 
@@ -82,4 +86,50 @@ async fn main() -> Result<()> {
     socket.send(&wake_packet).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_mac_bytes() {
+        let mac = "00:11:22:33:44:55";
+        let mac_bytes = get_mac_bytes(mac).unwrap();
+        assert_eq!(mac_bytes, [0, 17, 34, 51, 68, 85]);
+    }
+
+    #[test]
+    fn test_get_mac_bytes_invalid_length() {
+        let mac = "00:11:22:33:44:55:66";
+        let mac_bytes = get_mac_bytes(mac);
+        assert!(mac_bytes.is_err());
+    }
+
+    #[test]
+    fn test_get_mac_bytes_invalid_characters() {
+        let mac = "00:11:22:33:44:55:66";
+        let mac_bytes = get_mac_bytes(mac);
+        assert!(mac_bytes.is_err());
+    }
+
+    #[test]
+    fn test_get_wake_packet() {
+        let mac = "00:11:22:33:44:55";
+        let mac_bytes = get_mac_bytes(mac).unwrap();
+        let wake_packet = get_wake_packet(mac_bytes);
+        assert_eq!(
+            wake_packet,
+            [
+                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11,
+                0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33,
+                0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55,
+                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11,
+                0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33,
+                0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55,
+                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x11,
+                0x22, 0x33, 0x44, 0x55
+            ]
+        );
+    }
 }
