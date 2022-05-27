@@ -58,18 +58,25 @@ struct Args {
         help = "MAC-Address of target device to send wake on lan packet"
     )]
     mac: String,
+    /// IP to send broadcast/wake on lan packet to
+    #[clap(value_name = "IP", default_value = "255.255.255.255", long, short('i'))]
+    broadcast_ip: String,
+    /// Port to send broadcast/wake on lan packet to
+    #[clap(value_name = "Port", default_value = "7", long, short('p'))]
+    broadcast_port: i16,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+    println!("{:?}", args);
 
     let mac = args.mac;
     let mac_bytes = get_mac_bytes(&mac)?;
     let wake_packet = get_wake_packet(mac_bytes);
 
-    let broadcast_ip = "255.255.255.255";
-    let wake_on_lan_port = 7;
+    let broadcast_ip = &args.broadcast_ip;
+    let wake_on_lan_port = args.broadcast_port;
 
     let socket = UdpSocket::bind("0.0.0.0:0").await?;
     socket.set_broadcast(true)?;
