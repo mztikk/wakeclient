@@ -69,7 +69,6 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    println!("{:?}", args);
 
     let mac = args.mac;
     let mac_bytes = get_mac_bytes(&mac)?;
