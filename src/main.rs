@@ -3,8 +3,8 @@ use clap::Parser;
 use thiserror::Error;
 use tokio::net::UdpSocket;
 
-const WAKE_ON_LAN_PACKET_LEN: usize = 6 + 16 * 6;
 const MAGIC_PACKET: &[u8; 6] = &[0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
+const WAKE_ON_LAN_PACKET_LEN: usize = MAGIC_PACKET.len() + (16 * 6);
 
 #[derive(Error, Debug)]
 enum WakeError {
